@@ -27,7 +27,7 @@ jobs:
         run: |
           WORKFLOW_NAME="CI Pipeline"
           TOKEN="${{ secrets.GITHUB_TOKEN }}"
-          REPO="${{ github.repositiry }}"
+          REPO="${{ github.repository }}"
 
           WORKFLOW_ID=$(curl -L \
             -H "Accept: application/vnd.github+json" \
@@ -85,4 +85,3 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
         run: terraform apply -var 'bucket_name=${{ env.BUCKET_NAME }}' -var 'environment=${{ vars.ENV }}' -auto-approve
-        
