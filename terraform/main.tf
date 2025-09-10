@@ -12,7 +12,7 @@ resource "aws_s3_bucket_public_access_block" "app_public_block_access" {
   restrict_public_buckets = true
 }
 
-# Logs bucket
+# Logs Bucket
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-${var.environment}-devops-logs"
 }
@@ -25,8 +25,8 @@ resource "aws_s3_bucket_ownership_controls" "logs_ownership" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "logs_public_access_block" {
-  bucket = aws_s3_bucket.example.id
+resource "aws_s3_bucket_public_access_block" "logs_public_block_access" {
+  bucket = aws_s3_bucket.logs.id
 
   block_public_acls       = false
   block_public_policy     = true
@@ -34,13 +34,13 @@ resource "aws_s3_bucket_public_access_block" "logs_public_access_block" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_acl" "logs_acel" {
+resource "aws_s3_bucket_acl" "logs_acl" {
   bucket = aws_s3_bucket.logs.id
   acl    = "log-delivery-write"
 
   depends_on = [
     aws_s3_bucket_ownership_controls.logs_ownership,
-    aws_s3_bucket_public_access_block.logs_public_access_block
+    aws_s3_bucket_public_access_block.logs_public_block_access
   ]
 }
 
@@ -70,9 +70,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   default_cache_behavior {
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "s3-origin-${var.environment}"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-origin-${var.environment}"
     viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
@@ -82,13 +82,12 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
         forward = "none"
       }
     }
-
-
   }
 
   restrictions {
     geo_restriction {
       restriction_type = "none"
+      locations        = []
     }
   }
 
@@ -100,36 +99,36 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 # Bucket policy
 data "aws_iam_policy_document" "cdn" {
   statement {
-    sid = "AllowCloudFrontServicePrincipalReadOnly"
+    sid    = "AllowCloudFrontServicePrincipalReadOnly"
     effect = "Allow"
 
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["cloudfront.amazonaws.com"]
     }
 
     actions = [
-        "s3:GetObject"
+      "s3:GetObject"
     ]
 
     resources = [
-        "${aws_s3_bucket.app.arn}/*"
+      "${aws_s3_bucket.app.arn}/*"
     ]
 
     condition {
-      test = "StringEquals"
+      test     = "StringEquals"
       variable = "AWS:SourceArn"
-      values = ["${aws_cloudfront_distribution.s3_distribution.arn}"]
+      values   = ["${aws_cloudfront_distribution.s3_distribution.arn}"]
     }
   }
 }
 
-resource "aws_s3_bucket_policy" "allow_cnd" {
+resource "aws_s3_bucket_policy" "allow_cdn" {
   bucket = aws_s3_bucket.app.id
   policy = data.aws_iam_policy_document.cdn.json
 }
 
-# Null resource - to upload build folder content into s3 buckets
+# Upload Assest to S3
 resource "null_resource" "upload_build_to_s3" {
   provisioner "local-exec" {
     command = "aws s3 sync ../build s3://${aws_s3_bucket.app.bucket}"
