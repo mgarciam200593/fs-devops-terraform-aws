@@ -32,3 +32,4 @@ jobs:
           fi
 
           echo "Branch rules passed"
+          
