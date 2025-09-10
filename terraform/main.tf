@@ -17,31 +17,28 @@ resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-${var.environment}-devops-logs"
 }
 
-resource "aws_s3_bucket_ownership_controls" "logs_ownership" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "logs_public_block_access" {
-  bucket = aws_s3_bucket.logs.id
-
-  block_public_acls       = false
-  block_public_policy     = true
-  ignore_public_acls      = false
-  restrict_public_buckets = true
-}
-
 resource "aws_s3_bucket_acl" "logs_acl" {
   bucket = aws_s3_bucket.logs.id
   acl    = "log-delivery-write"
+}
 
-  depends_on = [
-    aws_s3_bucket_ownership_controls.logs_ownership,
-    aws_s3_bucket_public_access_block.logs_public_block_access
-  ]
+resource "aws_s3_bucket_policy" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontServicePrincipalReadOnly"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.logs.arn}/*"
+      }
+    ]
+  })
 }
 
 # Cloudfront
