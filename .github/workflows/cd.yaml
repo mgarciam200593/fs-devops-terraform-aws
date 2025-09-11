@@ -6,23 +6,23 @@ on:
       - devel
       - stage
       - prod
-    types: [closed] 
+    types: [closed]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
 
     env:
-      BUCKET_NAME: devops-terraform-aws
       AWS_REGION: us-east-1
       TF_WORKING_DIRECTORY: terraform
+      BUCKET_NAME: devops-terraform-aws
 
     steps: 
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Get the latest successful run ID from CI Pipeline workflow
+      - name: Get latest successful run ID of 'CI Pipeline' workflow
         id: get_run_id
         run: |
           WORKFLOW_NAME="CI Pipeline"
@@ -43,7 +43,7 @@ jobs:
             https://api.github.com/repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?status=success \
             | jq -r ".workflow_runs[0].id")
 
-          echo "Latest rud ID: $RUN_ID"
+          echo "Latest run ID: $RUN_ID"
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
       - name: Download Build Artifact
@@ -54,7 +54,7 @@ jobs:
           run-id: ${{ steps.get_run_id.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Terraform Setup
+      - name: Terraform setup
         uses: hashicorp/setup-terraform@v3
 
       - name: AWS Credentials
@@ -71,8 +71,8 @@ jobs:
       - name: Terraform Workspace Creation and Selection
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
         run: |
-          terraform workspace list | grep ${{ vars.ENV }} || terraform workspace new ${{ vars.ENV }}
-          terraform workspace select ${{ vars.ENV }}
+          terraform workspace list | grep "${{ vars.ENV }}" || terraform workspace new "${{ vars.ENV }}"
+          terraform workspace select "${{ vars.ENV }}"
 
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
@@ -80,9 +80,8 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
-        run: terraform plan -var 'bucket_name=${{ env.BUCKET_NAME }}' -var 'environment=${{ vars.ENV }}'
+        run: terraform plan -var 'environment=${{ vars.ENV }}' -var 'bucket_name=${{ env.BUCKET_NAME }}'
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIRECTORY }}
-        run: terraform apply -var 'bucket_name=${{ env.BUCKET_NAME }}' -var 'environment=${{ vars.ENV }}' -auto-approve
-        
+        run: terraform apply -var 'environment=${{ vars.ENV }}' -var 'bucket_name=${{ env.BUCKET_NAME }}' -auto-approve

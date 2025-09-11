@@ -1,4 +1,4 @@
-# App S3 Bucket
+# App bucket
 resource "aws_s3_bucket" "app" {
   bucket = "${var.bucket_name}-${var.environment}-devops-app"
 }
@@ -12,12 +12,12 @@ resource "aws_s3_bucket_public_access_block" "app_public_access_block" {
   restrict_public_buckets = true
 }
 
-# Logs S3 Bucket
+# Logs bucket
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.bucket_name}-${var.environment}-devops-logs"
 }
 
-resource "aws_s3_bucket_ownership_controls" "logs" {
+resource "aws_s3_bucket_ownership_controls" "logs_ownership" {
   bucket = aws_s3_bucket.logs.id
 
   rule {
@@ -25,17 +25,26 @@ resource "aws_s3_bucket_ownership_controls" "logs" {
   }
 }
 
-resource "aws_s3_bucket_acl" "logs" {
+resource "aws_s3_bucket_public_access_block" "example" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_acl" "example" {
   bucket = aws_s3_bucket.logs.id
   acl    = "log-delivery-write"
 
-  depends_on = [ aws_s3_bucket_ownership_controls.logs ]
+  depends_on = [aws_s3_bucket_ownership_controls.logs_ownership, aws_s3_bucket_policy.logs_policy]
 }
 
 # Cloudfront
 resource "aws_cloudfront_origin_access_control" "oac" {
   name                              = "oac-s3-private-${var.environment}"
-  description                       = "OAC for Private S3"
+  description                       = "OAC for S3"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -85,8 +94,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 }
 
-# Bucket Policies
-# App
+# s3 bucket policies
+# app
 data "aws_iam_policy_document" "app_policy" {
   statement {
     sid    = "AllowCloudFrontServicePrincipalReadOnly"
@@ -113,12 +122,12 @@ data "aws_iam_policy_document" "app_policy" {
   }
 }
 
-resource "aws_s3_bucket_policy" "app_bucket_policy" {
+resource "aws_s3_bucket_policy" "app_policy" {
   bucket = aws_s3_bucket.app.id
   policy = data.aws_iam_policy_document.app_policy.json
 }
 
-# Logs
+#Logs
 data "aws_iam_policy_document" "logs_policy" {
   statement {
     sid    = "AllowCloudFrontServicePrincipalToWriteLogs"
@@ -145,7 +154,7 @@ data "aws_iam_policy_document" "logs_policy" {
   }
 }
 
-resource "aws_s3_bucket_policy" "logs_bucket_policy" {
+resource "aws_s3_bucket_policy" "logs_policy" {
   bucket = aws_s3_bucket.logs.id
   policy = data.aws_iam_policy_document.logs_policy.json
 }
