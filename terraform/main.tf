@@ -41,7 +41,7 @@ resource "aws_s3_bucket_acl" "example" {
   depends_on = [aws_s3_bucket_ownership_controls.logs_ownership, aws_s3_bucket_policy.logs_policy]
 }
 
-# Cloudfront
+# Cloudfr
 resource "aws_cloudfront_origin_access_control" "oac" {
   name                              = "oac-s3-private-${var.environment}"
   description                       = "OAC for S3"
