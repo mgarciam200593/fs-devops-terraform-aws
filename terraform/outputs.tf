@@ -1,4 +1,4 @@
 output "public_url" {
   value       = aws_cloudfront_distribution.s3_distribution.domain_name
-  description = "Public URL for App"
+  description = "Public URL to access App"
 }
