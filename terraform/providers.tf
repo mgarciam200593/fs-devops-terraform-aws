@@ -3,7 +3,7 @@ provider "aws" {
     tags = {
       "Environment" = "${var.environment}"
       "Project"     = "Fullstack Devops Certification"
-      "Managedby"   = "Terraform"
+      "ManagedBy"   = "Terraform"
     }
   }
 }
