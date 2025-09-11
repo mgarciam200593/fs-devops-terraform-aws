@@ -25,11 +25,20 @@ resource "aws_s3_bucket_ownership_controls" "logs_ownership" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "example" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
 resource "aws_s3_bucket_acl" "example" {
   bucket = aws_s3_bucket.logs.id
   acl    = "log-delivery-write"
 
-  depends_on = [aws_s3_bucket_ownership_controls.logs_ownership]
+  depends_on = [aws_s3_bucket_ownership_controls.logs_ownership, aws_s3_bucket_policy.logs_policy]
 }
 
 # Cloudfront
